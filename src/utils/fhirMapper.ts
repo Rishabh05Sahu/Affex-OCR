@@ -6,7 +6,7 @@ type Observation = {
   unit: string;
   low: number;
   high: number;
-  flag: string;
+  flag: "L" | "H" | "N";
 };
 
 type FHIRBundle = {
@@ -21,14 +21,16 @@ type FHIRBundle = {
 
 function getLOINC(name: string) {
   const key = name.toLowerCase();
-
   for (const test in LOINC_MAP) {
-    if (key.includes(test)) {
-      return LOINC_MAP[test];
-    }
+    if (key.includes(test)) return LOINC_MAP[test];
   }
-
   return null;
+}
+
+function interpretationDisplay(flag: "L" | "H" | "N") {
+  if (flag === "L") return "Low";
+  if (flag === "H") return "High";
+  return "Normal";
 }
 
 export function mapToFHIR(observations: Observation[]): FHIRBundle {
@@ -53,18 +55,21 @@ export function mapToFHIR(observations: Observation[]): FHIRBundle {
                 ],
                 text: obs.name,
               }
-            : {
-                text: obs.name,
-              },
+            : { text: obs.name },
           valueQuantity: {
             value: obs.value,
             unit: obs.unit,
+            system: "http://unitsofmeasure.org",
+            code: obs.unit,
           },
           interpretation: [
             {
               coding: [
                 {
+                  system:
+                    "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
                   code: obs.flag,
+                  display: interpretationDisplay(obs.flag),
                 },
               ],
             },

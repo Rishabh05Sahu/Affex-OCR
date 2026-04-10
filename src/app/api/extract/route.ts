@@ -15,12 +15,12 @@ function validateAuth(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // 🔐 Auth
+    // Auth
     if (!validateAuth(req)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 📂 File handling
+    // File handling
     const formData = await req.formData();
     const fileEntry = formData.get("file");
 
@@ -47,57 +47,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let text = "";
+    // Real OCR only (no fake fallback while debugging)
+    const ocrData = await extractTextFromOCR(file);
 
-    try {
-      // 🌐 REAL OCR
-      const ocrData = await extractTextFromOCR(file);
-
-      text =
-        ocrData?.output?.text ||
-        ocrData?.text ||
-        "";
-
-      console.log("OCR TEXT:", text);
-    } catch (err) {
-      console.warn("OCR failed → using fallback");
-
-      // 🔥 FALLBACK (never break demo)
-      text = `
-      Hemoglobin: 11.2 g/dL (12-16)
-      Glucose: 90 mg/dL (70-100)
-      `;
-    }
+    const text =
+      (typeof ocrData.markdown === "string" && ocrData.markdown.trim()) ||
+      "";
 
     if (!text) {
       return NextResponse.json(
-        { error: "No extractable text" },
+        { error: "No extractable text returned by OCR" },
         { status: 422 }
       );
     }
 
-    // 🧠 Parse
+    // Parse
     const rawObservations = parseOCRText(text);
 
     if (!rawObservations.length) {
       return NextResponse.json(
-        { error: "No observations found" },
+        { error: "No observations found in OCR output" },
         { status: 422 }
       );
     }
 
-    // 🧪 Validate
-    const { cleaned, needsReview } =
-      validateObservations(rawObservations);
+    // Validate
+    const { cleaned, needsReview } = validateObservations(rawObservations);
 
-    // 🏥 FHIR
+    // FHIR
     const fhirResponse = mapToFHIR(cleaned);
     fhirResponse.meta.needsReview = needsReview;
 
     return NextResponse.json(fhirResponse);
   } catch (error: any) {
-    console.error("SERVER ERROR:", error);
-
     return NextResponse.json(
       { error: error.message || "Server error" },
       { status: 500 }
