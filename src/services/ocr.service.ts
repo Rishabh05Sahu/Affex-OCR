@@ -6,13 +6,12 @@ export async function extractTextFromOCR(file: File) {
   try {
     const formData = new FormData();
 
-    // ✅ FIX: Convert to buffer → blob (important for PDF)
     const buffer = await file.arrayBuffer();
     const blob = new Blob([buffer], { type: file.type });
 
     formData.append("file", blob, file.name);
 
-    // Submit
+    // STEP 1: Submit OCR request
     const submitRes = await axios.post(
       "https://www.datalab.to/api/v1/marker",
       formData,
@@ -25,25 +24,38 @@ export async function extractTextFromOCR(file: File) {
 
     const checkUrl = submitRes.data.request_check_url;
 
-    // Poll
-    while (true) {
+    if (!checkUrl) {
+      throw new Error("No polling URL received from OCR");
+    }
+
+    // STEP 2: Poll for result (max 20s)
+    const maxAttempts = 10;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
       const checkRes = await axios.get(checkUrl, {
         headers: {
           Authorization: `Bearer ${API_KEY}`,
         },
       });
 
-      if (checkRes.data.status === "completed") {
+      const status = checkRes.data.status;
+
+      if (status === "completed") {
         return checkRes.data;
       }
 
-      if (checkRes.data.status === "failed") {
-        throw new Error("OCR failed");
+      if (status === "failed") {
+        throw new Error("OCR processing failed");
       }
 
       await new Promise((res) => setTimeout(res, 2000));
+      attempts++;
     }
-  } catch (error) {
+
+    throw new Error("OCR timeout");
+  } catch (error: any) {
+    console.error("OCR ERROR:", error.message);
     throw new Error("OCR Service Error");
   }
 }
