@@ -3,7 +3,7 @@ import { extractTextFromOCR } from "@/services/ocr.service";
 import { parseOCRText } from "@/utils/parser";
 import { mapToFHIR } from "@/utils/fhirMapper";
 import { validateObservations } from "@/utils/validator";
-
+import { groupObservations } from "@/utils/formatter";
 export const runtime = "nodejs";
 
 const AUTH_TOKEN = process.env.AUTH_TOKEN;
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!fileEntry || !(fileEntry instanceof File)) {
       return NextResponse.json(
         { error: "File not received properly" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: "Unsupported file type" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -51,13 +51,12 @@ export async function POST(req: NextRequest) {
     const ocrData = await extractTextFromOCR(file);
 
     const text =
-      (typeof ocrData.markdown === "string" && ocrData.markdown.trim()) ||
-      "";
+      (typeof ocrData.markdown === "string" && ocrData.markdown.trim()) || "";
 
     if (!text) {
       return NextResponse.json(
         { error: "No extractable text returned by OCR" },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -67,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (!rawObservations.length) {
       return NextResponse.json(
         { error: "No observations found in OCR output" },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -78,11 +77,13 @@ export async function POST(req: NextRequest) {
     const fhirResponse = mapToFHIR(cleaned);
     fhirResponse.meta.needsReview = needsReview;
 
-    return NextResponse.json(fhirResponse);
+    const grouped = groupObservations(cleaned);
+
+    return NextResponse.json(grouped);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -26,7 +26,7 @@ export default function FileUpload({ onFileSelect }: Props) {
   return (
     <div
       onClick={handleClick}
-      className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-black transition-all duration-200 rounded-xl p-8 bg-gray-50 text-center"
+      className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-black transition-all rounded-xl p-8 bg-gray-50 text-center w-full"
     >
       {/* Hidden Input */}
       <input
@@ -37,21 +37,22 @@ export default function FileUpload({ onFileSelect }: Props) {
         className="hidden"
       />
 
-      {/* Content */}
       {!fileName ? (
         <div className="space-y-2">
           <p className="text-black font-semibold text-lg">
             Click to upload file
           </p>
           <p className="text-gray-500 text-sm">
-            PDF, JPG, PNG, WEBP supported
+            PDF, JPG, PNG supported
           </p>
         </div>
       ) : (
-        <div className="space-y-1">
-          <p className="text-green-600 font-medium">
-            ✅ {fileName}
+        <div className="space-y-2">
+          {/* FILE NAME FIX */}
+          <p className="text-green-600 font-medium max-w-full truncate">
+             {fileName}
           </p>
+
           <p className="text-xs text-gray-500">
             Click to change file
           </p>

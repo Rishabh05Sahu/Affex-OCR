@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FileUpload from "../molecules/FileUpload";
 import Button from "../atoms/Button";
+import ResultTable from "./ResultTable";
 
 export default function UploadSection() {
   const [file, setFile] = useState<File | null>(null);
@@ -44,13 +45,15 @@ export default function UploadSection() {
   };
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 space-y-5">
+<div className="w-full max-w-3xl mx-auto bg-white text-black rounded-2xl shadow-lg p-6 space-y-6">
       
       {/* Title */}
       <div>
+        <div className="bg-white text-black">
         <h1 className="text-2xl font-bold text-gray-900">
           Medical OCR
         </h1>
+        </div>
         <p className="text-sm text-gray-500">
           Upload report → Extract structured data
         </p>
@@ -72,11 +75,7 @@ export default function UploadSection() {
       </Button>
 
       {/* Result */}
-      {result && (
-        <div className="bg-gray-900 text-green-400 text-xs p-3 rounded-lg max-h-[250px] overflow-auto">
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </div>
-      )}
+{result && <ResultTable data={result} />}
     </div>
   );
 }
